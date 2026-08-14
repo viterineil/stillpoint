@@ -1,0 +1,107 @@
+# yaml-language-server: $schema=../schemas/stillpoint.schema.json
+# This is a design-complete example. The bootstrap CLI validates and plans it;
+# the mutating backup command is not enabled yet.
+version: 1
+
+backup_sets:
+  development:
+    sources:
+      - path: /home/neil/dev
+        snapshot:
+          provider: btrfs
+          live_subvolume: /mnt/stillpoint-dev/live
+          snapshots_directory: /mnt/stillpoint-dev/snapshots
+
+    exclusions:
+      presets:
+        - node-dependencies
+      patterns: []
+      # "packages" is intentionally not excluded; it often contains source.
+      refuse_to_exclude_git_tracked_files: true
+
+    secrets:
+      # include-encrypted, exclude, select, or fail.
+      mode: select
+      detect_compose_env_files: true
+      detect_file_backed_compose_secrets: true
+      additional_patterns: []
+
+    agents:
+      mode: hybrid
+      acknowledgement_timeout: 2m
+      dispatch_gate:
+        adapter: command
+        # Executable-plus-argument arrays; never shell strings.
+        close: [agent-manager, backup-gate, close, --json]
+        status: [agent-manager, backup-gate, status, --json]
+        open: [agent-manager, backup-gate, open, --json]
+      cooperative:
+        adapter: command
+        discover: [agent-manager, agents, list, --json]
+        checkpoint: [agent-manager, agents, checkpoint, --json]
+        acknowledgements: [agent-manager, agents, acks, --json]
+        resume: [agent-manager, agents, resume, --json]
+      fence:
+        adapter: systemd-slice
+        unit: agents.slice
+
+    docker:
+      discover: true
+      compose_projects:
+        - files:
+            - /home/neil/dev/example/compose.yaml
+          include:
+            compose_files: true
+            dockerfiles: true
+            dockerignore: true
+            env_files: ask
+            file_backed_secrets: ask
+            bind_mounts: ask-outside-sources
+          named_volumes:
+            default: application-aware
+            fallback: prompt
+          databases:
+            - service: db
+              adapter: postgres-logical
+              include_roles: true
+
+    repository:
+      primary:
+        type: local
+        # Keep this outside the WSL source VHD and preferably on another disk.
+        path: /mnt/d/Backups/Stillpoint/development
+        password_command:
+          - stillpoint
+          - credential
+          - read
+          - --repository
+          - development
+
+      replicas:
+        - name: s3
+          type: restic
+          repository: s3:s3.us-east-1.amazonaws.com/example-private-bucket/stillpoint/development
+          credentials: aws-provider-chain
+          replicate: after-local-success
+
+        - name: gdrive
+          type: restic
+          repository: rclone:gdrive:Backups/Stillpoint/development
+          credentials: rclone-config
+          replicate: manual
+
+    retention:
+      keep_hourly: 24
+      keep_daily: 14
+      keep_weekly: 8
+      keep_monthly: 12
+      keep_yearly: 3
+
+    verification:
+      structural: weekly
+      sampled_data: monthly
+      restore_drill: quarterly
+
+    scheduling:
+      enabled: false
+      provider: auto

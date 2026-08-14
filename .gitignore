@@ -1,0 +1,16 @@
+/bin/
+/dist/
+/coverage.out
+/stillpoint
+*.test
+*.prof
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Runtime state and credentials must never be committed.
+.stillpoint/
+stillpoint.local.yaml
+*.password
+*.recovery-kit

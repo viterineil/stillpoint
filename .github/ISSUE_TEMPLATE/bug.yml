@@ -1,0 +1,42 @@
+name: Bug report
+description: Report reproducible incorrect or unsafe behavior
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, repository passwords, secret values, or unredacted logs.
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What happened?
+      description: Include the expected and actual outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic paths and data where possible.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Stillpoint version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS/WSL version, filesystem, Restic, systemd, Docker, and relevant adapters.
+    validations:
+      required: true
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security check
+      options:
+        - label: This report does not expose a vulnerability or sensitive data. I will use private vulnerability reporting if it does.
+          required: true

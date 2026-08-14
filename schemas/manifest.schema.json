@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/viterineil/stillpoint/schemas/manifest.schema.json",
+  "title": "Stillpoint logical backup-set manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "backup_set_id",
+    "barrier_at",
+    "sources",
+    "exclusion_policy_hash",
+    "agent_acknowledgements",
+    "filesystem_snapshots",
+    "restic_snapshot_ids",
+    "compose_projects",
+    "database_components",
+    "volume_components",
+    "tool_versions",
+    "complete"
+  ],
+  "properties": {
+    "schema_version": {"const": 1},
+    "backup_set_id": {"type": "string", "minLength": 1},
+    "barrier_at": {"type": "string", "format": "date-time"},
+    "sources": {"type": "array", "items": {"type": "object"}},
+    "exclusion_policy_hash": {"type": "string", "minLength": 1},
+    "agent_acknowledgements": {"type": "array", "items": {"type": "object"}},
+    "filesystem_snapshots": {"type": "array", "items": {"type": "object"}},
+    "restic_snapshot_ids": {"type": "array", "items": {"type": "string"}},
+    "compose_projects": {"type": "array", "items": {"type": "object"}},
+    "database_components": {"type": "array", "items": {"type": "object"}},
+    "volume_components": {"type": "array", "items": {"type": "object"}},
+    "tool_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "complete": {"type": "boolean"}
+  }
+}

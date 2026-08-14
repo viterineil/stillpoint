@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/viterineil/stillpoint/schemas/stillpoint.schema.json",
+  "title": "Stillpoint configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "backup_sets"],
+  "properties": {
+    "version": {"const": 1},
+    "backup_sets": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/$defs/backupSet"}
+    }
+  },
+  "$defs": {
+    "command": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "backupSet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources", "exclusions", "secrets", "agents", "repository"],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/source"}
+        },
+        "exclusions": {"$ref": "#/$defs/exclusions"},
+        "secrets": {"$ref": "#/$defs/secrets"},
+        "agents": {"$ref": "#/$defs/agents"},
+        "docker": {"$ref": "#/$defs/docker"},
+        "repository": {"$ref": "#/$defs/repository"},
+        "retention": {"$ref": "#/$defs/retention"},
+        "verification": {"$ref": "#/$defs/verification"},
+        "scheduling": {"$ref": "#/$defs/scheduling"}
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "snapshot"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^/"},
+        "snapshot": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provider"],
+          "properties": {
+            "provider": {"enum": ["btrfs", "lvm", "zfs", "staged-copy"]},
+            "live_subvolume": {"type": "string"},
+            "snapshots_directory": {"type": "string"}
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "presets": {"type": "array", "items": {"type": "string"}},
+        "patterns": {"type": "array", "items": {"type": "string"}},
+        "refuse_to_exclude_git_tracked_files": {"type": "boolean", "default": true}
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["include-encrypted", "exclude", "select", "fail"]},
+        "detect_compose_env_files": {"type": "boolean", "default": true},
+        "detect_file_backed_compose_secrets": {"type": "boolean", "default": true},
+        "additional_patterns": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {"enum": ["hybrid", "command", "systemd-slice", "none"]},
+        "acknowledgement_timeout": {"type": "string", "pattern": "^[1-9][0-9]*(ms|s|m|h)$"},
+        "dispatch_gate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {"type": "string"},
+            "close": {"$ref": "#/$defs/command"},
+            "status": {"$ref": "#/$defs/command"},
+            "open": {"$ref": "#/$defs/command"}
+          }
+        },
+        "cooperative": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {"type": "string"},
+            "discover": {"$ref": "#/$defs/command"},
+            "checkpoint": {"$ref": "#/$defs/command"},
+            "acknowledgements": {"$ref": "#/$defs/command"},
+            "resume": {"$ref": "#/$defs/command"}
+          }
+        },
+        "fence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {"type": "string"},
+            "unit": {"type": "string"}
+          }
+        }
+      }
+    },
+    "docker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "discover": {"type": "boolean"},
+        "compose_projects": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/composeProject"}
+        }
+      }
+    },
+    "composeProject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files"],
+      "properties": {
+        "files": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "include": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "compose_files": {"type": "boolean"},
+            "dockerfiles": {"type": "boolean"},
+            "dockerignore": {"type": "boolean"},
+            "env_files": {"type": "string"},
+            "file_backed_secrets": {"type": "string"},
+            "bind_mounts": {"type": "string"}
+          }
+        },
+        "named_volumes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "default": {"type": "string"},
+            "fallback": {"type": "string"}
+          }
+        },
+        "databases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["service", "adapter"],
+            "properties": {
+              "service": {"type": "string"},
+              "adapter": {"type": "string"},
+              "include_roles": {"type": "boolean"}
+            }
+          }
+        }
+      }
+    },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary"],
+      "properties": {
+        "primary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "path", "password_command"],
+          "properties": {
+            "type": {"const": "local"},
+            "path": {"type": "string", "minLength": 1},
+            "repository": {"type": "string"},
+            "password_command": {"$ref": "#/$defs/command"}
+          }
+        },
+        "replicas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type", "repository", "credentials", "replicate"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "type": {"const": "restic"},
+              "repository": {"type": "string", "minLength": 1},
+              "credentials": {"type": "string", "minLength": 1},
+              "replicate": {"enum": ["after-local-success", "manual", "scheduled"]}
+            }
+          }
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keep_hourly": {"type": "integer", "minimum": 0},
+        "keep_daily": {"type": "integer", "minimum": 0},
+        "keep_weekly": {"type": "integer", "minimum": 0},
+        "keep_monthly": {"type": "integer", "minimum": 0},
+        "keep_yearly": {"type": "integer", "minimum": 0}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "structural": {"type": "string"},
+        "sampled_data": {"type": "string"},
+        "restore_drill": {"type": "string"}
+      }
+    },
+    "scheduling": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "provider": {"enum": ["auto", "systemd", "windows-task-scheduler", "none"]}
+      }
+    }
+  }
+}
